@@ -3,6 +3,7 @@ import 'package:diagnostic_report_package/main/diagnostic_reporter.dart';
 import 'package:diagnostic_report_package/src/collectors/diagnostic_context_collector_interface.dart';
 import 'package:diagnostic_report_package/src/config/diagnostic_category.dart';
 import 'package:diagnostic_report_package/src/config/diagnostic_level.dart';
+import 'package:diagnostic_report_package/src/config/http_diagnostic_transport.dart';
 import 'package:diagnostic_report_package/src/repository/events_repository.dart';
 import 'package:diagnostic_report_package/src/services/diagnostic_connectivity.dart';
 import 'package:diagnostic_report_package/src/services/diagnostic_event.dart';
@@ -26,10 +27,14 @@ class DefaultDiagnosticReporter implements DiagnosticReporter {
     required this.collector,
     required this.deviceInfo,
     required this.connectivity,
-    required this.transport,
     required this.reportStore,
+    Uri? apiUrl,
+    DiagnosticTransport? transport,
     DiagnosticEventRepository? eventRepository,
-  }) : eventRepository = eventRepository ?? InMemoryDiagnosticEventRepository();
+  }) : transport = transport ?? HttpDiagnosticTransport(endpoint: apiUrl!), eventRepository = eventRepository ?? InMemoryDiagnosticEventRepository() {
+    assert(transport != null || apiUrl != null, 'Você deve fornecer um transport customizado ou uma apiUrl.');
+  }
+
 
   @override
   DiagnosticEvent recordEvent({
