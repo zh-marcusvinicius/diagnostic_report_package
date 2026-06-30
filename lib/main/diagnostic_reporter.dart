@@ -11,14 +11,18 @@ abstract interface class DiagnosticReporter {
     required String message,
     Map<String, dynamic> metadata = const {},
     String? incidentId,
+    DateTime? timestamp,
   });
 
   Future<DiagnosticReport> captureError(
     Object error,
     StackTrace? stackTrace, {
     String? displayedCode,
+    String? realErrorCode,
+    String source = 'unknown',
     DiagnosticLevel severity = DiagnosticLevel.error,
     bool isFatal = false,
+    bool isRecoverable = true,
     Map<String, dynamic> domainContext = const {},
   });
 

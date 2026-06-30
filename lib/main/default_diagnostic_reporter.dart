@@ -3,7 +3,6 @@ import 'package:diagnostic_report_package/main/diagnostic_reporter.dart';
 import 'package:diagnostic_report_package/src/collectors/diagnostic_context_collector_interface.dart';
 import 'package:diagnostic_report_package/src/config/diagnostic_category.dart';
 import 'package:diagnostic_report_package/src/config/diagnostic_level.dart';
-import 'package:diagnostic_report_package/src/config/http_diagnostic_transport.dart';
 import 'package:diagnostic_report_package/src/repository/events_repository.dart';
 import 'package:diagnostic_report_package/src/services/diagnostic_connectivity.dart';
 import 'package:diagnostic_report_package/src/services/diagnostic_event.dart';
@@ -27,14 +26,10 @@ class DefaultDiagnosticReporter implements DiagnosticReporter {
     required this.collector,
     required this.deviceInfo,
     required this.connectivity,
+    required this.transport,
     required this.reportStore,
-    Uri? apiUrl,
-    DiagnosticTransport? transport,
     DiagnosticEventRepository? eventRepository,
-  }) : assert(transport != null || apiUrl != null, 'Você deve fornecer um transport customizado ou uma apiUrl.'),
-       transport = transport ?? HttpDiagnosticTransport(endpoint: apiUrl!), 
-       eventRepository = eventRepository ?? InMemoryDiagnosticEventRepository();
-
+  }) : eventRepository = eventRepository ?? InMemoryDiagnosticEventRepository();
 
   @override
   DiagnosticEvent recordEvent({
@@ -43,10 +38,11 @@ class DefaultDiagnosticReporter implements DiagnosticReporter {
     required String message,
     Map<String, dynamic> metadata = const {},
     String? incidentId,
+    DateTime? timestamp,
   }) {
     final event = DiagnosticEvent(
       id: _uuid.v4(),
-      timestamp: DateTime.now(),
+      timestamp: timestamp ?? DateTime.now(),
       level: level,
       category: category,
       message: message,
@@ -62,8 +58,11 @@ class DefaultDiagnosticReporter implements DiagnosticReporter {
     Object error,
     StackTrace? stackTrace, {
     String? displayedCode,
+    String? realErrorCode,
+    String source = 'unknown',
     DiagnosticLevel severity = DiagnosticLevel.error,
     bool isFatal = false,
+    bool isRecoverable = true,
     Map<String, dynamic> domainContext = const {},
   }) async {
     final contextData = await collector.collect();
@@ -71,18 +70,22 @@ class DefaultDiagnosticReporter implements DiagnosticReporter {
       incidentId: _uuid.v4(),
       createdAt: DateTime.now(),
       deviceInfo: deviceInfo,
-      error: DianosticErrorInfo(
+      severity: severity,
+      error: DiagnosticErrorInfo(
         message: error.toString(),
-        diplayedCode: displayedCode ?? 'ERR',
+        displayedCode: displayedCode ?? 'ERR',
+        realErrorCode: realErrorCode,
         stackTrace: stackTrace?.toString() ?? '',
         isFatal: isFatal,
+        isRecoverable: isRecoverable,
+        source: source,
       ),
-      context: contextData,
+      context: {...contextData, ...domainContext},
       lastEvents: eventRepository.getEvents(),
     );
     _capturedReports.add(report);
     if (_capturedReports.length > 10) {
-      _capturedReports.removeAt(0); // Mantém apenas os últimos 10 relatórios em memória
+      _capturedReports.removeAt(0);
     }
     return report;
   }
@@ -91,8 +94,7 @@ class DefaultDiagnosticReporter implements DiagnosticReporter {
   Future<DiagnosticSubmissionResult> submit(DiagnosticReport report) async {
     final isOnline = await connectivity.isOnline;
     if (!isOnline) {
-      final existing = await reportStore.load();
-      await reportStore.save([...existing, report]);
+      await _persist(report);
       return DiagnosticSubmissionResult.offline(report.incidentId);
     }
 
@@ -115,21 +117,19 @@ class DefaultDiagnosticReporter implements DiagnosticReporter {
           report.incidentId,
           remoteId: response.remoteId,
         );
-      } else {
-        // timeout, salva offline
-        if (response.statusCode == 408) {
-          final existing = await reportStore.load();
-          await reportStore.save([...existing, report]);
-          return DiagnosticSubmissionResult.timeout(report.incidentId);
-        }
-        return DiagnosticSubmissionResult.failure(
-          report.incidentId,
-          message: response.message,
-        );
       }
+
+      if (response.statusCode == 408) {
+        await _persist(report);
+        return DiagnosticSubmissionResult.timeout(report.incidentId);
+      }
+
+      return DiagnosticSubmissionResult.failure(
+        report.incidentId,
+        message: response.message,
+      );
     } catch (e) {
-      final existing = await reportStore.load();
-      await reportStore.save([...existing, report]);
+      await _persist(report);
       return DiagnosticSubmissionResult.failure(
         report.incidentId,
         message: e.toString(),
@@ -137,9 +137,15 @@ class DefaultDiagnosticReporter implements DiagnosticReporter {
     }
   }
 
+  Future<void> _persist(DiagnosticReport report) async {
+    final existing = await reportStore.load();
+    await reportStore.save([...existing, report]);
+  }
+
   @override
   List<DiagnosticReport> get recentReports => List.unmodifiable(_capturedReports);
 
   @override
-  DiagnosticReport? get latestReport => _capturedReports.isEmpty ? null : _capturedReports.last;
+  DiagnosticReport? get latestReport =>
+      _capturedReports.isEmpty ? null : _capturedReports.last;
 }
