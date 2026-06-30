@@ -2,6 +2,44 @@
 
 Um pacote de diagnósticos focado em rastreabilidade e monitoramento de erros. Ele funciona como um "reporter" que escuta as ações do usuário ao longo da navegação no aplicativo e armazena esse histórico em memória. Quando um erro acontece, o pacote captura o erro e envia automaticamente um relatório contendo a trilha de ações realizadas (logs), detalhes do dispositivo e contexto adicional, facilitando a identificação e correção da falha.
 
+---
+
+## Instalação
+
+Adicione o pacote como dependência no `pubspec.yaml` do seu projeto Flutter:
+
+**Via Git (recomendado):**
+
+```yaml
+dependencies:
+  diagnostic_report_package:
+    git:
+      url: https://github.com/zh-marcusvinicius/diagnostic_report_package.git
+      ref: v0.1.0
+```
+
+**Via caminho local** (quando o pacote está na mesma máquina):
+
+```yaml
+dependencies:
+  diagnostic_report_package:
+    path: ../diagnostic_report_package
+```
+
+Depois rode:
+
+```bash
+flutter pub get
+```
+
+E importe onde precisar:
+
+```dart
+import 'package:diagnostic_report_package/diagnostic_report_package.dart';
+```
+
+---
+
 ## Visão Geral das Principais Classes
 
 O pacote possui uma arquitetura baseada em interfaces para facilitar a injeção de dependências e a customização conforme as necessidades do seu app.
@@ -61,18 +99,26 @@ Recomenda-se criar e disponibilizar essa instância globalmente no seu app (usan
 
 ```dart
 final diagnosticReporter = DefaultDiagnosticReporter(
-  deviceInfo: const DiagnosticDeviceInfo(model: 'iPhone 13', os: 'iOS 16.0'),
+  deviceInfo: const DiagnosticDeviceInfo(
+    model: 'Pixel 7',
+    os: 'Android',
+    osVersion: '14',
+    manufacturer: 'Google',
+    appVersion: '1.2.0',
+  ),
   connectivity: MyConnectivity(),
   transport: MyTransport(),
   reportStore: MyReportStore(),
-  // O Collector junta as infos do usuário/sessão (AppDiagnosticCollector é fornecido como exemplo)
+  // AppDiagnosticCollector recebe providers tipados — implemente as interfaces
+  // DiagnosticSessionProvider, DiagnosticEquipmentProvider e DiagnosticLocationProvider
+  // retornando Map<String, dynamic>? com os dados do seu domínio.
   collector: AppDiagnosticCollector(
-    sessionRepository: sessionRepo,
-    equipmentRepository: equipRepo,
-    locationGateway: locGateway,
+    sessionProvider: MySessionProvider(),
+    equipmentProvider: MyEquipmentProvider(),
+    locationProvider: MyLocationProvider(),
   ),
-  // Opcional: Você pode injetar sua própria implementação de repositório,
-  // ou ele usará InMemoryDiagnosticEventRepository() por padrão com limite de 100 itens.
+  // Opcional: injete sua própria implementação de repositório de eventos,
+  // ou o padrão InMemoryDiagnosticEventRepository() será usado automaticamente.
 );
 ```
 
