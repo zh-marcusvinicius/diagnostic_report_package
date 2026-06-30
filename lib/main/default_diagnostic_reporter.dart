@@ -31,9 +31,9 @@ class DefaultDiagnosticReporter implements DiagnosticReporter {
     Uri? apiUrl,
     DiagnosticTransport? transport,
     DiagnosticEventRepository? eventRepository,
-  }) : transport = transport ?? HttpDiagnosticTransport(endpoint: apiUrl!), eventRepository = eventRepository ?? InMemoryDiagnosticEventRepository() {
-    assert(transport != null || apiUrl != null, 'Você deve fornecer um transport customizado ou uma apiUrl.');
-  }
+  }) : assert(transport != null || apiUrl != null, 'Você deve fornecer um transport customizado ou uma apiUrl.'),
+       transport = transport ?? HttpDiagnosticTransport(endpoint: apiUrl!), 
+       eventRepository = eventRepository ?? InMemoryDiagnosticEventRepository();
 
 
   @override
