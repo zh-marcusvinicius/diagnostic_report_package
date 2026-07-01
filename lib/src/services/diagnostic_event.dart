@@ -20,6 +20,16 @@ class DiagnosticEvent {
     this.incidentId,
   });
 
+  factory DiagnosticEvent.fromJson(Map<String, dynamic> json) => DiagnosticEvent(
+        id: json['id'] as String,
+        timestamp: DateTime.parse(json['timestamp'] as String),
+        level: DiagnosticLevel.fromString(json['level'] as String),
+        category: DiagnosticCategory.fromString(json['category'] as String),
+        message: json['message'] as String,
+        metadata: json['metadata'] as Map<String, dynamic>? ?? const {},
+        incidentId: json['incidentId'] as String?,
+      );
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

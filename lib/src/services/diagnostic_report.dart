@@ -16,6 +16,14 @@ class DiagnosticDeviceInfo {
     this.appVersion = '',
   });
 
+  factory DiagnosticDeviceInfo.fromJson(Map<String, dynamic> json) => DiagnosticDeviceInfo(
+    model: json['model'] as String,
+    os: json['os'] as String,
+    osVersion: json['osVersion'] as String,
+    manufacturer: json['manufacturer'] as String,
+    appVersion: json['appVersion'] as String,
+  );
+
   Map<String, dynamic> toJson() => {
         'model': model,
         'os': os,
@@ -43,6 +51,16 @@ class DiagnosticErrorInfo {
     this.isRecoverable = true,
     this.source = 'unknown',
   });
+
+  factory DiagnosticErrorInfo.fromJson(Map<String, dynamic> json) => DiagnosticErrorInfo(
+    message: json['message'] as String,
+    displayedCode: json['displayedCode'] as String,
+    realErrorCode: json['realErrorCode'] as String?,
+    stackTrace: json['stackTrace'] as String,
+    isFatal: json['isFatal'] as bool,
+    isRecoverable: json['isRecoverable'] as bool,
+    source: json['source'] as String,
+  );
 
   Map<String, dynamic> toJson() => {
         'message': message,
@@ -73,6 +91,18 @@ class DiagnosticReport {
     required this.lastEvents,
     this.severity = DiagnosticLevel.error,
   });
+
+  factory DiagnosticReport.fromJson(Map<String, dynamic> json) => DiagnosticReport(
+    incidentId: json['incidentId'] as String,
+    createdAt: DateTime.parse(json['createdAt'] as String),
+    deviceInfo: DiagnosticDeviceInfo.fromJson(json['deviceInfo'] as Map<String, dynamic>),
+    error: DiagnosticErrorInfo.fromJson(json['error'] as Map<String, dynamic>),
+    severity: DiagnosticLevel.fromString(json['severity'] as String),
+    context: json['context'] as Map<String, dynamic>,
+    lastEvents: (json['lastEvents'] as List<dynamic>? ?? [])
+        .map((e) => DiagnosticEvent.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
         'incidentId': incidentId,
