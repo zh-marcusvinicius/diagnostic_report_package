@@ -8,22 +8,14 @@ Um pacote de diagnósticos focado em rastreabilidade e monitoramento de erros. E
 
 Adicione o pacote como dependência no `pubspec.yaml` do seu projeto Flutter:
 
-**Via Git (recomendado):**
+**Via Git:**
 
 ```yaml
 dependencies:
   diagnostic_report_package:
     git:
       url: https://github.com/zh-marcusvinicius/diagnostic_report_package.git
-      ref: v0.1.0
-```
-
-**Via caminho local** (quando o pacote está na mesma máquina):
-
-```yaml
-dependencies:
-  diagnostic_report_package:
-    path: ../diagnostic_report_package
+      ref: main
 ```
 
 Depois rode:
